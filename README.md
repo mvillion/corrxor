@@ -1,13 +1,14 @@
-# Benchmark for Goertzel algorithm
+# Benchmark for correlation using xor for low quantification signals (typically 1 bit)
 
 
 ## Overview
 
-To evaluate the power of specific frequency component in signal, `Goertzel algorithm` will be a better solution than `fast Fourier transform (FFT)`. Because `Goertzel algorithm` allows us to evaluate a single `DFT (Discrete Fourier Transform)` term at a time.
+Correlatation of a received signal with a reference signal can be computed using np.convolve(sig, ref, "valid") on signed integer values.
+Faster implementation can be searched for unsigned integer values with only a few bits for both received and reference signals.
 
-As Goertzel algorithm computes a single output frequency, it is faster than FFT.
+In the special case with only 1 (signed) bit for both, products can be implemented using xor.
 
-## First problem: How much faster Goertzel is? How can it be made faster?
+On 32-bit machines, 32 multiplications can be performed in a single cycles but accumulations can be longer if popcount instruction is not available.
 
 ### Introductory results
 
