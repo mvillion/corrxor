@@ -174,8 +174,7 @@ if __name__ == "__main__":
         "dft",
         "fft",
         "fftf",
-        "goertzel",
-        "goertzelf",
+        "corrxor",
     ]
     BenchType = Enum("BenchType", bench_list, start=0)
     cost, error = bench_range(BenchType, len_range, n_test=n_test)
@@ -183,7 +182,7 @@ if __name__ == "__main__":
     title_str = "Faster Goertzel w/ radix"
     bench_list = [
         "fft",
-        "goertzel",
+        "corrxor",
     ]
     plot_bench(
         BenchType, len_range, cost, error, bench_list, media_path, "radix",

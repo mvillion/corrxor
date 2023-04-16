@@ -1,9 +1,8 @@
 #include "include.h"
 #include <math.h>
 
-static PyObject* dsp_goertzel_template(
-    PyObject* self, PyObject* args, goertzel_fun_t *fun, goertzel_fun_t *fun_cx,
-    goertzelf_fun_t *funf, goertzelf_fun_t *funf_cx)
+static PyObject* dsp_corrxor_template(
+    PyObject* self, PyObject* args, corrxor_fun_t *fun)
 {
     PyArrayObject *in_data;
     PyObject *output;
@@ -27,46 +26,14 @@ static PyObject* dsp_goertzel_template(
     for (int k = 0; k < n_dim-1; k++)
         n_data *= out_dim[k];
 
-    int typenum = PyArray_TYPE(in_data);
-    if (typenum == NPY_FLOAT64 || typenum == NPY_COMPLEX128)
+    double *data = (double *)PyArray_DATA(in_data);
+    output = PyArray_SimpleNew(n_dim-1, out_dim, NPY_COMPLEX128);
+    double *out_res = (double *)PyArray_DATA((PyArrayObject *)output);
+    for (npy_intp i_data = 0; i_data < n_data; i_data++)
     {
-        double *data = (double *)PyArray_DATA(in_data);
-        output = PyArray_SimpleNew(n_dim-1, out_dim, NPY_COMPLEX128);
-        double *out_res = (double *)PyArray_DATA((PyArrayObject *)output);
-        if (typenum == NPY_FLOAT64 && fun != NULL)
-            for (npy_intp i_data = 0; i_data < n_data; i_data++)
-            {
-                fun(data, data_len, k, out_res);
-                data += data_len;
-                out_res += 2;
-            }
-        else if (typenum == NPY_COMPLEX128 && fun_cx != NULL)
-            for (npy_intp i_data = 0; i_data < n_data; i_data++)
-            {
-                fun_cx(data, data_len, k, out_res);
-                data += data_len*2;
-                out_res += 2;
-            }
-    }
-    else //if (typenum == NPY_FLOAT32 || typenum == NPY_COMPLEX64)
-    {
-        float *data = (float *)PyArray_DATA(in_data);
-        output = PyArray_SimpleNew(n_dim-1, out_dim, NPY_COMPLEX64);
-        float *out_res = (float *)PyArray_DATA((PyArrayObject *)output);
-        if (typenum == NPY_FLOAT32 && fun != NULL)
-            for (npy_intp i_data = 0; i_data < n_data; i_data++)
-            {
-                funf(data, data_len, k, out_res);
-                data += data_len;
-                out_res += 2;
-            }
-        else if (typenum == NPY_COMPLEX64 && fun_cx != NULL)
-            for (npy_intp i_data = 0; i_data < n_data; i_data++)
-            {
-                funf_cx(data, data_len, k, out_res);
-                data += data_len*2;
-                out_res += 2;
-            }
+        fun(data, data_len, k, out_res);
+        data += data_len;
+        out_res += 2;
     }
 
     // Decrease the reference count of ap.
@@ -74,30 +41,30 @@ static PyObject* dsp_goertzel_template(
     return output;
 }
 
-#define DEF_DSP(name, fun_cx, funf, funf_cx) \
+#define DEF_DSP(name) \
 static PyObject* dsp_ ## name (PyObject* self, PyObject* args) \
 { \
-    return dsp_goertzel_template(self, args, &name, fun_cx, funf, funf_cx); \
+    return dsp_corrxor_template(self, args, &name); \
 }
-DEF_DSP(goertzel, &goertzel_cx, &goertzelf, &goertzelf_cx)
+DEF_DSP(corrxor)
 #undef DEF_DSP
 
 
 #define stringify(x) #x
 #define DEF_DSP(radix, arch) \
     { \
-        stringify(goertzel_rad ## radix ## _ ## arch), \
-        dsp_goertzel_rad ## radix ## _ ## arch, METH_VARARGS, \
-        "Goertzel radix-" stringify(radix) \
+        stringify(corrxor_rad ## radix ## _ ## arch), \
+        dsp_corrxor_rad ## radix ## _ ## arch, METH_VARARGS, \
+        "corrxor radix-" stringify(radix) \
         " algorithm using " stringify(arch) " instructions." \
     },
 
 /* Set up the methods table */
 static PyMethodDef methods[] = {
     {
-        "goertzel", dsp_goertzel, // Python name, C name
+        "corrxor", dsp_corrxor, // Python name, C name
         METH_VARARGS, // input parameters
-        "Goertzel algorithm." // doc string
+        "corrxor algorithm." // doc string
     },
     {NULL, NULL, 0, NULL} // sentinel
 };
