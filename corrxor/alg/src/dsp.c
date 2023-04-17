@@ -1,4 +1,5 @@
 #include <immintrin.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/param.h>
@@ -7,39 +8,68 @@
 #define concat2(X, Y) X ## Y
 #define concat(X, Y) concat2(X, Y)
 
-void corrxor(double *data, long data_len, double k, double *out)
+void corrxor(
+    uint32_t *sig, uint32_t n_sig, uint32_t *ref, uint32_t n_ref,
+    uint32_t *out)
 {
-    double omega = 2.0*M_PI*k/data_len;
-    double sw = sin(omega);
-    double cw = cos(omega);
-    double coeff = 2.0*cw;
+    uint32_t n_out = n_sig-n_ref+1;
 
-    double q0 = 0.0;
-    double q1 = 0.0;
-    double q2 = 0.0;
-
-    long int i;
-    for (i = 0; i < data_len/3*3; i += 3)
+    for (uint32_t i_out = 0; i_out < n_out; i_out++)
     {
-        q0 = coeff*q1 - q2 + data[i+0];
-        q2 = coeff*q0 - q1 + data[i+1];
-        q1 = coeff*q2 - q0 + data[i+2];
+        uint32_t acc = 0;
+        for (uint32_t k = 0; k < n_ref; k++)
+        {
+            uint32_t ref_k = ref[k/32];
+            ref_k >>= k % 32;
+            ref_k &= 1;
+            uint32_t sig_k = sig[(k+i_out)/32];
+            sig_k >>= (k+i_out) % 32;
+            sig_k &= 1;
+            acc += ref_k^sig_k;
+        }
+        out[i_out] = n_ref-acc;
     }
-    for (; i < data_len; i++)
+}
+
+void corrxor_popcount(
+    uint32_t *sig, uint32_t n_sig, uint32_t *ref, uint32_t n_ref,
+    uint32_t *out)
+{
+    uint32_t n_out = n_sig-n_ref+1;
+
+    for (uint32_t i_out = 0; i_out < n_out; i_out++)
     {
-        q0 = coeff*q1 - q2 + data[i];
-        q2 = q1;
-        q1 = q0;
+        uint32_t acc = 0;
+        uint8_t shift_low = i_out % 32;
+        uint8_t shift_high = 32-shift_low;
+        if (shift_low == 0)
+            for (uint32_t k = 0; k < n_ref/32; k++)
+            {
+                uint32_t ref_k = ref[k];
+                uint32_t sig_k = sig[k+i_out/32];
+                acc += __builtin_popcount(ref_k^sig_k);
+            }
+        else
+            for (uint32_t k = 0; k < n_ref/32; k++)
+            {
+                uint32_t ref_k = ref[k];
+                uint32_t sig_low = sig[k+i_out/32];
+                uint32_t sig_high = sig[k+i_out/32+1];
+                uint32_t sig_k;
+                sig_k = sig_low >> shift_low;
+                sig_k |= sig_high << shift_high;
+                acc += __builtin_popcount(ref_k^sig_k);
+            }
+        for (uint32_t k = n_ref/32*32; k < n_ref; k++)
+        {
+            uint32_t ref_k = ref[k/32];
+            ref_k >>= k % 32;
+            ref_k &= 1;
+            uint32_t sig_k = sig[(k+i_out)/32];
+            sig_k >>= (k+i_out) % 32;
+            sig_k &= 1;
+            acc += ref_k^sig_k;
+        }
+        out[i_out] = n_ref-acc;
     }
-
-    // note: dm00446805-the-goertzel-algorithm-to-compute-individual-terms-of-the-discrete-fourier-transform-dft-stmicroelectronics-1.pdf
-    // suggests for non-integer k:
-//     w2 = 2*pi*k;
-//     cw2 = cos(w2);
-//     sw2 = sin(w2);
-//     I = It*cw2 + Q*sw2;
-//     Q = -It*sw2 + Q*cw2;
-
-    out[0] = q1*cw-q2; // real
-    out[1] = q1*sw; // imag
 }
