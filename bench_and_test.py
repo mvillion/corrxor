@@ -146,6 +146,7 @@ if __name__ == "__main__":
         "corrxor_py",
         "corrxor",
         "corrxor_popcount",
+        "corrxor_nopop",
     ]
     BenchType = Enum("BenchType", bench_list, start=0)
     cost, error = bench_range(BenchType, len_range, n_test=n_test)
@@ -155,6 +156,7 @@ if __name__ == "__main__":
         "corrxor_py",
         "corrxor",
         "corrxor_popcount",
+        "corrxor_nopop",
     ]
     plot_bench(
         BenchType, len_range, cost, error, bench_list, media_path, "radix",

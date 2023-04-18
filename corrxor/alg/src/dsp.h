@@ -7,3 +7,4 @@ typedef void corrxor_fun_t(
 
 corrxor_fun_t corrxor;
 corrxor_fun_t corrxor_popcount;
+corrxor_fun_t corrxor_nopop;
