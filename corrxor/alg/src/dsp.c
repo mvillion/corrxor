@@ -31,24 +31,57 @@ void corrxor(
     }
 }
 
-uint32_t inline popcount_quad(uint32_t x)
+#if defined(__ARM_FEATURE_DSP)
+static inline uint32_t __SUB_LSR1(uint32_t op1, uint32_t op2)
 {
-    x -= ((x >> 1) & 0x55555555);
-    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+    uint32_t result;
+    __ASM("sub %0, %1, %2, lsr #1" : "=r" (result) : "r" (op1), "r" (op2));
+    return result;
+}
+
+static inline uint32_t __ADD_LSR2(uint32_t op1, uint32_t op2)
+{
+    uint32_t result;
+    __ASM("add %0, %1, %2, lsr #2" : "=r" (result) : "r" (op1), "r" (op2));
+    return result;
+}
+#endif
+
+static inline uint32_t popcount_quad(uint32_t x)
+{
+    uint32_t x1 = x & 0xaaaaaaaa;
+#if defined(__ARM_FEATURE_DSP)
+    x = __SUB_LSR1(x, x1);
+#else
+    x -= x1 >> 1;
+#endif
+    x1 = x & 0xcccccccc;
+    x &= 0x33333333;
+#if defined(__ARM_FEATURE_DSP)
+    x = __ADD_LSR2(x, x1);
+#else
+    x += x1 >> 2;
+#endif
     x = (x + (x >> 4)) & 0x0f0f0f0f;
     return x;
 }
 
-uint32_t inline popcount(uint32_t x)
+static inline uint32_t popcount(uint32_t x)
 {
     x = popcount_quad(x);
-    x += (x >> 8);
-    x += (x >> 16);
-    x &= 0x3f;
+#if defined(__ARM_FEATURE_DSP)
+    x = __USAD8(x, 0);
+#elif 0
+    x += (x << 8);
+    x += (x << 16);
+#else
+    x *= 0x01010101;
+#endif
+    x >>= 24;
     return x;
 }
 
-void inline corrxor_popcount_template(
+static void __attribute__((always_inline)) inline corrxor_popcount_template(
     uint32_t *sig, uint32_t n_sig, uint32_t *ref, uint32_t n_ref,
     uint32_t *out, uint8_t method)
 {
@@ -59,7 +92,7 @@ void inline corrxor_popcount_template(
         uint32_t acc = 0;
         uint8_t shift_low = i_out % 32;
         uint8_t shift_high = 32-shift_low;
-        if (shift_low == 0)
+        if (shift_low == 0 && 0)
             for (uint32_t k = 0; k < n_ref/32; k++)
             {
                 uint32_t ref_k = ref[k];
@@ -80,7 +113,7 @@ void inline corrxor_popcount_template(
                 uint32_t sig_high = sig[k+i_out/32+1];
                 uint32_t sig_k;
                 sig_k = sig_low >> shift_low;
-                sig_k |= sig_high << shift_high;
+                sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
                 uint32_t x = ref_k^sig_k;
                 uint32_t acc_k;
                 if (method == 0)
