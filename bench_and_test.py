@@ -134,7 +134,7 @@ if __name__ == "__main__":
 
     media_path = Path(".") / "media_tmp"
     media_path.mkdir(exist_ok=True)
-    n_test = 20
+    n_test = 100
 
     # len_range = np.concatenate((
     #     np.arange(1, 64), np.arange(64, 1024, 64), 2**np.arange(10, 13)))
@@ -147,6 +147,7 @@ if __name__ == "__main__":
         "corrxor",
         "corrxor_popcount",
         "corrxor_nopop",
+        "corrxor_popcount_3quad",
     ]
     BenchType = Enum("BenchType", bench_list, start=0)
     cost, error = bench_range(BenchType, len_range, n_test=n_test)
@@ -157,6 +158,7 @@ if __name__ == "__main__":
         "corrxor",
         "corrxor_popcount",
         "corrxor_nopop",
+        "corrxor_popcount_3quad",
     ]
     plot_bench(
         BenchType, len_range, cost, error, bench_list, media_path, "radix",

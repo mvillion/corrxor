@@ -75,6 +75,7 @@ static PyObject* dsp_ ## name (PyObject* self, PyObject* args) \
 DEF_DSP(corrxor)
 DEF_DSP(corrxor_popcount)
 DEF_DSP(corrxor_nopop)
+DEF_DSP(corrxor_popcount_3quad)
 #undef DEF_DSP
 
 
@@ -101,6 +102,10 @@ static PyMethodDef methods[] = {
     {
         "corrxor_nopop", dsp_corrxor_nopop, METH_VARARGS,
         "corrxor algorithm w/o popcount instruction."
+    },
+    {
+        "corrxor_popcount_3quad", dsp_corrxor_popcount_3quad, METH_VARARGS,
+        "corrxor algorithm using popcount w/ 3 quad accumulation."
     },
     {NULL, NULL, 0, NULL} // sentinel
 };
