@@ -163,3 +163,5 @@ if __name__ == "__main__":
     plot_bench(
         BenchType, len_range, cost, error, bench_list, media_path, "radix",
         title_str)
+    from matplotlib import pyplot as plt
+    plt.show()

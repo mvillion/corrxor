@@ -35,14 +35,14 @@ void corrxor(
 static inline uint32_t __SUB_LSR1(uint32_t op1, uint32_t op2)
 {
     uint32_t result;
-    __ASM("sub %0, %1, %2, lsr #1" : "=r" (result) : "r" (op1), "r" (op2));
+    __asm("sub %0, %1, %2, lsr #1" : "=r" (result) : "r" (op1), "r" (op2));
     return result;
 }
 
-static inline uint32_t __ADD_LSR2(uint32_t op1, uint32_t op2)
+static inline uint32_t __ADD_LSR(uint32_t op1, uint32_t op2, uint8_t op3)
 {
     uint32_t result;
-    __ASM("add %0, %1, %2, lsr #2" : "=r" (result) : "r" (op1), "r" (op2));
+    __asm("add %0, %1, %2, lsr %3" : "=r" (result) : "r" (op1), "r" (op2), "I" (op3));
     return result;
 }
 #endif
@@ -58,7 +58,7 @@ static inline uint32_t popcount_quad(uint32_t x)
     x1 = x & 0xcccccccc;
     x &= 0x33333333;
 #if defined(__ARM_FEATURE_DSP)
-    x = __ADD_LSR2(x, x1);
+    x = __ADD_LSR(x, x1, 2);
 #else
     x += x1 >> 2;
 #endif
@@ -74,7 +74,7 @@ static inline uint32_t popcount_octet(uint32_t x)
 
 static inline uint32_t sum_octet(uint32_t x)
 {
-#if defined(__ARM_FEATURE_DSP)
+#if defined(__ARM_FEATURE_DSP) && 0
     x = __USAD8(x, 0);
 #elif 0
     x += (x << 8);
@@ -158,7 +158,7 @@ static void __attribute__((always_inline)) inline corrxor_popcount_template(
                 sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
                 uint32_t x = ref[k]^sig_k;
                 if ((method & 1) == 0)
-                    acc_k = __builtin_popcount(x);
+                    acc_k = inline __builtin_popcount(x);
                 else // (method == 1)
                     acc_k = popcount(x);
                 acc += acc_k;
