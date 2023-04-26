@@ -99,7 +99,6 @@ static void __attribute__((always_inline)) inline corrxor_popcount_template(
     uint32_t acc_k;
     uint32_t k;
     uint32_t n_out = n_sig-n_ref+1;
-    uint32_t ref_k;
     uint32_t sig_k;
 
     for (uint32_t i_out = 0; i_out < n_out; i_out++)
@@ -110,9 +109,8 @@ static void __attribute__((always_inline)) inline corrxor_popcount_template(
         if (shift_low == 0 && 0)
             for (k = 0; k < n_ref/32; k++)
             {
-                ref_k = ref[k];
                 uint32_t sig_k = sig[k+i_out/32];
-                uint32_t x = ref_k^sig_k;
+                uint32_t x = ref[k]^sig_k;
                 if ((method & 1) == 0)
                     acc_k = __builtin_popcount(x);
                 else // (method == 1)
@@ -125,24 +123,24 @@ static void __attribute__((always_inline)) inline corrxor_popcount_template(
             if ((method & 2) > 0)
                 for (k = 0; k < n_ref/32/3*3; k += 3)
                 {
-                    ref_k = ref[k+0];
                     uint32_t sig_low = sig[k+0+i_out/32];
-                    uint32_t sig_high = sig[k+0+i_out/32+1];
+                    uint32_t sig_high = sig[k+1+i_out/32];
                     sig_k = sig_low >> shift_low;
                     sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
-                    acc_k = popcount_quad(ref_k^sig_k);
-                    ref_k = ref[k+1];
+                    acc_k = popcount_quad(ref[k+0]^sig_k);
+
                     sig_low = sig[k+1+i_out/32];
-                    sig_high = sig[k+1+i_out/32+1];
+                    sig_high = sig[k+2+i_out/32];
                     sig_k = sig_low >> shift_low;
                     sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
-                    acc_k += popcount_quad(ref_k^sig_k);
-                    ref_k = ref[k+2];
+                    acc_k += popcount_quad(ref[k+1]^sig_k);
+
                     sig_low = sig[k+2+i_out/32];
-                    sig_high = sig[k+2+i_out/32+1];
+                    sig_high = sig[k+3+i_out/32];
                     sig_k = sig_low >> shift_low;
                     sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
-                    acc_k += popcount_quad(ref_k^sig_k);
+                    acc_k += popcount_quad(ref[k+2]^sig_k);
+
                     uint32_t x1 = acc_k & 0xf0f0f0f0;
                     acc_k &= 0x0f0f0f0f;
 #if defined(__ARM_FEATURE_DSP)
@@ -154,12 +152,11 @@ static void __attribute__((always_inline)) inline corrxor_popcount_template(
                 }
             for (; k < n_ref/32; k++)
             {
-                ref_k = ref[k];
                 uint32_t sig_low = sig[k+i_out/32];
                 uint32_t sig_high = sig[k+i_out/32+1];
                 sig_k = sig_low >> shift_low;
                 sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
-                uint32_t x = ref_k^sig_k;
+                uint32_t x = ref[k]^sig_k;
                 if ((method & 1) == 0)
                     acc_k = __builtin_popcount(x);
                 else // (method == 1)
@@ -169,7 +166,7 @@ static void __attribute__((always_inline)) inline corrxor_popcount_template(
         }
         for (k = n_ref/32*32; k < n_ref; k++)
         {
-            ref_k = ref[k/32];
+            uint32_t ref_k = ref[k/32];
             ref_k >>= k % 32;
             ref_k &= 1;
             sig_k = sig[(k+i_out)/32];
