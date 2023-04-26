@@ -130,20 +130,27 @@ static void __attribute__((always_inline)) inline corrxor_popcount_template(
                     uint32_t sig_high = sig[k+0+i_out/32+1];
                     sig_k = sig_low >> shift_low;
                     sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
-                    acc_k = popcount(ref_k^sig_k);
+                    acc_k = popcount_quad(ref_k^sig_k);
                     ref_k = ref[k+1];
                     sig_low = sig[k+1+i_out/32];
                     sig_high = sig[k+1+i_out/32+1];
                     sig_k = sig_low >> shift_low;
                     sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
-                    acc_k += popcount(ref_k^sig_k);
+                    acc_k += popcount_quad(ref_k^sig_k);
                     ref_k = ref[k+2];
                     sig_low = sig[k+2+i_out/32];
                     sig_high = sig[k+2+i_out/32+1];
                     sig_k = sig_low >> shift_low;
                     sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
-                    acc_k += popcount(ref_k^sig_k);
-                    acc += acc_k;
+                    acc_k += popcount_quad(ref_k^sig_k);
+                    uint32_t x1 = acc_k & 0xf0f0f0f0;
+                    acc_k &= 0x0f0f0f0f;
+#if defined(__ARM_FEATURE_DSP)
+                    acc_k = __ADD_LSR(acc_k, x1, 4);
+#else
+                    acc_k += x1 >> 4;
+#endif
+                    acc += sum_octet(acc_k);
                 }
             for (; k < n_ref/32; k++)
             {
