@@ -62,13 +62,19 @@ static inline uint32_t popcount_quad(uint32_t x)
 #else
     x += x1 >> 2;
 #endif
+    return x;
+}
+
+static inline uint32_t popcount_octet(uint32_t x)
+{
+    x = popcount_quad(x);
     x = (x + (x >> 4)) & 0x0f0f0f0f;
     return x;
 }
 
 static inline uint32_t popcount(uint32_t x)
 {
-    x = popcount_quad(x);
+    x = popcount_octet(x);
 #if defined(__ARM_FEATURE_DSP)
     x = __USAD8(x, 0);
 #elif 0
