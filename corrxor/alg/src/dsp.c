@@ -72,9 +72,8 @@ static inline uint32_t popcount_octet(uint32_t x)
     return x;
 }
 
-static inline uint32_t popcount(uint32_t x)
+static inline uint32_t sum_octet(uint32_t x)
 {
-    x = popcount_octet(x);
 #if defined(__ARM_FEATURE_DSP)
     x = __USAD8(x, 0);
 #elif 0
@@ -85,6 +84,12 @@ static inline uint32_t popcount(uint32_t x)
 #endif
     x >>= 24;
     return x;
+}
+
+static inline uint32_t popcount(uint32_t x)
+{
+    x = popcount_octet(x);
+    return sum_octet(x);
 }
 
 static void __attribute__((always_inline)) inline corrxor_popcount_template(
