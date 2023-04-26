@@ -125,24 +125,19 @@ static void __attribute__((always_inline)) inline corrxor_popcount_template(
                     uint32_t sig_high = sig[k+0+i_out/32+1];
                     sig_k = sig_low >> shift_low;
                     sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
-                    uint32_t x = ref_k^sig_k;
-                    acc_k = popcount(x);
-                    acc += acc_k;
+                    acc_k = popcount(ref_k^sig_k);
                     ref_k = ref[k+1];
                     sig_low = sig[k+1+i_out/32];
                     sig_high = sig[k+1+i_out/32+1];
                     sig_k = sig_low >> shift_low;
                     sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
-                    x = ref_k^sig_k;
-                    acc_k = popcount(x);
-                    acc += acc_k;
+                    acc_k += popcount(ref_k^sig_k);
                     ref_k = ref[k+2];
                     sig_low = sig[k+2+i_out/32];
                     sig_high = sig[k+2+i_out/32+1];
                     sig_k = sig_low >> shift_low;
                     sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
-                    x = ref_k^sig_k;
-                    acc_k = popcount(x);
+                    acc_k += popcount(ref_k^sig_k);
                     acc += acc_k;
                 }
             for (; k < n_ref/32; k++)
