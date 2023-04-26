@@ -76,6 +76,7 @@ DEF_DSP(corrxor)
 DEF_DSP(corrxor_popcount)
 DEF_DSP(corrxor_nopop)
 DEF_DSP(corrxor_popcount_3quad)
+DEF_DSP(corrxor_popcount_8octet)
 #undef DEF_DSP
 
 
@@ -106,6 +107,10 @@ static PyMethodDef methods[] = {
     {
         "corrxor_popcount_3quad", dsp_corrxor_popcount_3quad, METH_VARARGS,
         "corrxor algorithm using popcount w/ 3 quad accumulation."
+    },
+    {
+        "corrxor_popcount_8octet", dsp_corrxor_popcount_8octet, METH_VARARGS,
+        "corrxor algorithm using popcount w/ 8 octet accumulation."
     },
     {NULL, NULL, 0, NULL} // sentinel
 };

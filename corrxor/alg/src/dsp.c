@@ -76,13 +76,34 @@ static inline uint32_t sum_octet(uint32_t x)
 {
 #if defined(__ARM_FEATURE_DSP) && 0
     x = __USAD8(x, 0);
-#elif 0
-    x += (x << 8);
-    x += (x << 16);
 #else
-    x *= 0x01010101;
-#endif
+    #if 0
+        x += (x << 8);
+        x += (x << 16);
+    #else
+        x *= 0x01010101;
+    #endif
     x >>= 24;
+#endif
+    return x;
+}
+
+// sum may be over 256
+static inline uint32_t sum_octet_over(uint32_t x)
+{
+#if defined(__ARM_FEATURE_DSP) && 0
+    x = __USAD8(x, 0);
+#else
+    uint32_t x1 = x & 0xff00ff00;
+    x &= 0x00ff00ff;
+    #if defined(__ARM_FEATURE_DSP)
+        x = __ADD_LSR(x, x1, 8);
+    #else
+        x += x1 >> 8;
+    #endif
+    x += (x << 16);
+    x >>= 16;
+#endif
     return x;
 }
 
@@ -91,6 +112,11 @@ static inline uint32_t popcount(uint32_t x)
     x = popcount_octet(x);
     return sum_octet(x);
 }
+
+// method:
+// bit 0 is __builtin_popcount or my popcount
+// bit 1 (2) is popcount accumulated on 3 quad
+// bit 2 (4) is popcount accumulated on 3 quad
 
 static void __attribute__((always_inline)) inline corrxor_popcount_template(
     uint32_t *sig, uint32_t n_sig, uint32_t *ref, uint32_t n_ref,
@@ -120,7 +146,7 @@ static void __attribute__((always_inline)) inline corrxor_popcount_template(
         else
         {
             k = 0;
-            if ((method & 2) > 0)
+            if ((method & 0x2) > 0)
                 for (k = 0; k < n_ref/32/3*3; k += 3)
                 {
                     uint32_t sig_low = sig[k+0+i_out/32];
@@ -150,6 +176,25 @@ static void __attribute__((always_inline)) inline corrxor_popcount_template(
 #endif
                     acc += sum_octet(acc_k);
                 }
+            else if ((method & 0x4) > 0)
+            {
+#define UNROLL_POP8 8
+                uint32_t n_ref8 =  n_ref/32/UNROLL_POP8*UNROLL_POP8;
+                for (k = 0; k < n_ref8; k += UNROLL_POP8)
+                {
+                    acc_k = 0;
+                    #pragma GCC unroll 8
+                    for (uint32_t l = 0; l < UNROLL_POP8; l++)
+                    {
+                        uint32_t sig_low = sig[k+l+i_out/32];
+                        uint32_t sig_high = sig[k+l+1+i_out/32];
+                        sig_k = sig_low >> shift_low;
+                        sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
+                        acc_k += popcount_octet(ref[k+l]^sig_k);
+                    }
+                    acc += sum_octet_over(acc_k);
+                }
+            }
             for (; k < n_ref/32; k++)
             {
                 uint32_t sig_low = sig[k+i_out/32];
@@ -158,7 +203,7 @@ static void __attribute__((always_inline)) inline corrxor_popcount_template(
                 sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
                 uint32_t x = ref[k]^sig_k;
                 if ((method & 1) == 0)
-                    acc_k = inline __builtin_popcount(x);
+                    acc_k = __builtin_popcount(x);
                 else // (method == 1)
                     acc_k = popcount(x);
                 acc += acc_k;
@@ -196,5 +241,12 @@ void corrxor_popcount_3quad(
     uint32_t *sig, uint32_t n_sig, uint32_t *ref, uint32_t n_ref,
     uint32_t *out)
 {
-    corrxor_popcount_template(sig, n_sig, ref, n_ref, out, 2);
+    corrxor_popcount_template(sig, n_sig, ref, n_ref, out, 3);
+}
+
+void corrxor_popcount_8octet(
+    uint32_t *sig, uint32_t n_sig, uint32_t *ref, uint32_t n_ref,
+    uint32_t *out)
+{
+    corrxor_popcount_template(sig, n_sig, ref, n_ref, out, 5);
 }
