@@ -112,6 +112,10 @@ static PyMethodDef methods[] = {
         "corrxor_popcount_8octet", dsp_corrxor_popcount_8octet, METH_VARARGS,
         "corrxor algorithm using popcount w/ 8 octet accumulation."
     },
+    {
+        "corrxor3_nopop", dsp_corrxor_nopop, METH_VARARGS,
+        "corrxor algorithm w/o popcount instruction (n_delay=3)."
+    },
     {NULL, NULL, 0, NULL} // sentinel
 };
 

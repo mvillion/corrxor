@@ -10,3 +10,4 @@ corrxor_fun_t corrxor_popcount;
 corrxor_fun_t corrxor_nopop;
 corrxor_fun_t corrxor_popcount_3quad;
 corrxor_fun_t corrxor_popcount_8octet;
+corrxor_fun_t corrxor3_nopop;

@@ -250,3 +250,62 @@ void corrxor_popcount_8octet(
 {
     corrxor_popcount_template(sig, n_sig, ref, n_ref, out, 5);
 }
+
+// specialized code for n_out=3
+static void __attribute__((always_inline)) inline corrxor3_popcount_template(
+    uint32_t *sig, uint32_t n_sig, uint32_t *ref, uint32_t n_ref,
+    uint32_t *out, uint8_t method)
+{
+    uint32_t acc_k;
+    uint32_t k;
+    uint32_t n_out = n_sig-n_ref+1;
+    uint32_t sig_k;
+
+#define N_DELAY 3
+    if (n_out != N_DELAY)
+        return;
+
+    uint32_t acc[N_DELAY];
+    for (uint32_t m = 0; m < N_DELAY; m++)
+        acc[m] = 0;
+
+    for (k = 0; k < n_ref/32; k++)
+    {
+        #pragma GCC unroll 3
+        for (uint32_t m = 0; m < N_DELAY; m++)
+        {
+            uint8_t shift_low = m % 32;
+            uint8_t shift_high = 32-shift_low;
+            uint32_t sig_low = sig[k+m/32];
+            uint32_t sig_high = sig[k+m/32+1];
+            sig_k = sig_low >> shift_low;
+            sig_k |= (uint32_t)((uint64_t)sig_high << shift_high);
+            acc_k = popcount(ref[k]^sig_k);
+            acc[m] += acc_k;
+        }
+    }
+    for (k = n_ref/32*32; k < n_ref; k++)
+    {
+        for (uint32_t m = 0; m < N_DELAY; m++)
+        {
+            uint32_t ref_k = ref[k/32];
+            ref_k >>= k % 32;
+            ref_k &= 1;
+            sig_k = sig[(k+m)/32];
+            sig_k >>= (k+m) % 32;
+            sig_k &= 1;
+            acc[m] += ref_k^sig_k;
+        }
+    }
+
+    for (uint32_t m = 0; m < N_DELAY; m++)
+        out[m] = n_ref-acc[m];
+}
+
+void corrxor3_nopop(
+    uint32_t *sig, uint32_t n_sig, uint32_t *ref, uint32_t n_ref,
+    uint32_t *out)
+{
+    corrxor3_popcount_template(sig, n_sig, ref, n_ref, out, 1);
+}
+
